@@ -661,14 +661,16 @@ o6 = order(loadings[,6], decreasing=TRUE)
 colnames(S)[head(o6,10)]
 colnames(S)[tail(o6,5)]
 ```
+
 ## Market Segments According to Correlated Interests
 K-means++ clustering with 6 clusters of sizes 2254, 976, 719, 1208, 1280, 1445:
-*	Young to middle-aged women (Cluster 1): Photo sharing, shopping, home & garden are interests largely related with young women in their mid-twenties to forties.
-*	Fashion, Food and Beauty Enthusiasts (Cluster 2): Customer interests include fashion, beauty and cooking.
-*	College Students (Cluster 3): This group of customers tweet daily about their college life, online gaming and sports playing.
-*	Parents (Cluster 4): Customer interests include parenting, family, religion, school
-*	Middle-aged working-class men (Cluster 5): Customer interests include politics, travel, automotive.
-*	Fitness Enthusiasts (Cluster 6): Customer interests include health & nutrition, personal fitness, outdoors.
+<ol><li> Young to middle-aged women (Cluster 1): Photo sharing, shopping, home & garden are interests largely related with young women in their mid-twenties to forties.
+<li> Fashion, Food and Beauty Enthusiasts (Cluster 2): Customer interests include fashion, beauty and cooking.
+<li> College Students (Cluster 3): This group of customers tweet daily about their college life, online gaming and sports playing.
+<li> Parents (Cluster 4): Customer interests include parenting, family, religion, school
+<li> Middle-aged working-class men (Cluster 5): Customer interests include politics, travel, automotive.
+<li> Fitness Enthusiasts (Cluster 6): Customer interests include health & nutrition, personal fitness, outdoors.
+</ol>
 
 ```{r}
 #cluster1

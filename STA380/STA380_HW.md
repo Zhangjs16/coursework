@@ -591,33 +591,33 @@ head(sim1)
 ```
 
     ##               [,1]      [,2]      [,3]      [,4]      [,5]      [,6]
-    ## result.1 100878.37 102446.95 103766.84 103646.12 104767.27 104204.21
-    ## result.2  98482.10  99063.65  99272.51  99883.00  99266.90  98065.57
-    ## result.3  98943.59  99681.66  99680.42  99434.05 100872.53 101649.78
-    ## result.4  99159.96  98510.09  99480.34 100871.50 101302.23 100903.90
-    ## result.5  99423.84  98772.24  98947.57 100066.14  99808.79 100296.18
-    ## result.6 100093.29  98121.07  97147.27  99217.51  98231.58  95717.36
+    ## result.1  97453.30  98213.51  97385.33  95542.73  96968.26  96474.51
+    ## result.2  99691.21  99553.83  99957.92 100404.08 101033.39 101127.64
+    ## result.3 100097.74 100437.68 100042.74  99756.83 100038.37  97939.84
+    ## result.4  98827.97  99108.57  99445.15  98638.43  97353.76  98230.98
+    ## result.5  99526.76  99090.88 100194.83 100805.82 100285.54 100286.23
+    ## result.6 100676.92 101243.96 103312.48 103892.81 104630.83 104101.97
     ##               [,7]      [,8]      [,9]     [,10]     [,11]     [,12]
-    ## result.1 104246.94 103862.82 103965.96 105920.92 105492.99 105891.09
-    ## result.2  98771.84  97288.57  96361.12  95418.14  95053.13  94442.29
-    ## result.3 103655.68 104193.80 103093.09 103472.15 102963.41 106004.05
-    ## result.4  99293.57 101353.08 103150.24 102051.49 102205.53 101543.95
-    ## result.5 101185.66 101353.76 100822.23  99966.54 100462.73 101590.10
-    ## result.6  95861.58  95739.22  96391.42  96594.81  96462.18  97806.24
-    ##              [,13]     [,14]     [,15]     [,16]     [,17]     [,18]
-    ## result.1 106670.60 107721.50 106148.25 106924.61 106112.95 104085.77
-    ## result.2  94400.62  93978.56  92108.03  92744.05  93143.10  91889.56
-    ## result.3 106880.19 107424.97 107157.52 106514.32 106538.98 105394.16
-    ## result.4 101798.94 101645.34 102163.85 101329.72 102962.72 102793.28
-    ## result.5 103559.73 104529.62 104468.27 104807.08 104386.76 104838.25
-    ## result.6  97627.42  97469.44  97001.79  97547.13  97273.23  99039.94
+    ## result.1  97542.33  97582.95  98071.65  98875.19  98792.02  99562.67
+    ## result.2 101944.58 103019.85 104437.96 101428.06 102159.42 101353.82
+    ## result.3  97893.30  98135.82  98832.94  97542.59  96812.77  96635.76
+    ## result.4  97097.39  97230.05  97827.49  98187.19  98994.30  99794.13
+    ## result.5 100122.05  98801.63  98448.89  99988.87  98785.14  98000.78
+    ## result.6 103911.64 103804.87 102148.24 102488.82 103867.42 104495.44
+    ##              [,13]     [,14]     [,15]     [,16]    [,17]     [,18]
+    ## result.1 100664.67 101690.90 100959.08 102645.50 102241.8 103386.95
+    ## result.2  99518.83  98065.38  98840.27  99670.17 100165.8 100102.87
+    ## result.3  96337.71  96165.74  95586.41  95564.48  96176.0  95941.99
+    ## result.4  99752.54  99306.55  99322.60  99311.93  99839.1 100548.32
+    ## result.5  97177.53  97215.89  95529.03  95267.42  95816.1  95893.27
+    ## result.6 103857.06 105290.19 106320.90 107304.64 107488.4 108671.81
     ##              [,19]     [,20]
-    ## result.1 102930.35 102787.49
-    ## result.2  92695.42  93363.81
-    ## result.3 104714.60 105021.84
-    ## result.4 103540.23 102911.48
-    ## result.5 101557.02 101141.26
-    ## result.6  99064.17  98804.98
+    ## result.1 104185.64 103836.15
+    ## result.2 101269.56 102565.13
+    ## result.3  94777.30  95789.88
+    ## result.4  99381.18  98331.30
+    ## result.5  96669.68  96118.37
+    ## result.6 109334.50 108528.61
 
 ``` r
 hist(sim1[,n_days], 25)
@@ -630,7 +630,7 @@ hist(sim1[,n_days], 25)
 mean(sim1[,n_days])
 ```
 
-    ## [1] 100278.3
+    ## [1] 100216.4
 
 ``` r
 hist(sim1[,n_days]- initial_wealth, breaks=30,xlab = "Returns",main="Distribution of returns")
@@ -645,7 +645,7 @@ quantile(sim1[,n_days]- initial_wealth, 0.05)
 ```
 
     ##        5% 
-    ## -7991.856
+    ## -8050.543
 
 Technology ETFs
 ---------------
@@ -717,33 +717,33 @@ head(sim1)
 ```
 
     ##               [,1]      [,2]      [,3]      [,4]      [,5]      [,6]
-    ## result.1 101206.03  99875.27  96176.89  97747.18  97772.19  95702.55
-    ## result.2  98908.83 100744.08 101404.80 100465.15  99981.65  99917.58
-    ## result.3 101483.21 101205.78 100686.92 101558.79 102438.20 102553.36
-    ## result.4 101004.73 102128.03 104638.06 105243.49 107286.37 107649.30
-    ## result.5  97773.14 101772.01 101642.34 101083.47  99489.66  98889.35
-    ## result.6 100663.19  99980.90 100444.47 100293.90 100780.92 100535.00
+    ## result.1 102511.17 103527.94 104958.54 105714.89 105741.11 107587.44
+    ## result.2 101219.39 101588.85  97447.35  98915.50  98215.76  98367.02
+    ## result.3  99505.16  99218.64  97304.72  97851.03  96881.47  98716.52
+    ## result.4 100720.62 100577.52 101182.75 102258.71 101023.48 101570.91
+    ## result.5  99031.35 100162.43 100627.79 100777.15 100741.06 100793.53
+    ## result.6 100038.64 103299.27 103953.18 104578.72 104300.72 104458.09
     ##               [,7]      [,8]      [,9]     [,10]     [,11]     [,12]
-    ## result.1  96581.80  95936.03  95563.38  94809.13  92871.78  91888.10
-    ## result.2 101841.36 102614.78 102088.70 102892.55 103511.71 103388.63
-    ## result.3  99783.37 100060.06 101392.91 102263.45 100986.21 101987.86
-    ## result.4 107294.07 108308.62 108823.68 107062.47 108307.72 110238.05
-    ## result.5  99230.34  99368.36  99100.49  95587.44  96266.81  96500.17
-    ## result.6 100843.16 100568.04 100727.30 101364.93 100468.21 100398.38
+    ## result.1 107951.39 107890.52 107932.70 107577.95 108553.17 107848.17
+    ## result.2  99568.40  97534.98  94650.80  94196.57  94358.54  94314.78
+    ## result.3  98616.71  98203.31  97984.69  98135.59  98932.39  99492.40
+    ## result.4 100647.88  96920.90  97151.47  97801.62  97163.10  96703.61
+    ## result.5 101422.12 101634.62 102813.87 102126.44 100731.22  99956.71
+    ## result.6 103993.12 106194.73 106754.30 107319.76 107350.07 105103.34
     ##              [,13]     [,14]     [,15]     [,16]     [,17]     [,18]
-    ## result.1  91123.16  91364.77  89696.73  91445.22  93542.93  92901.06
-    ## result.2 103360.97 103128.36 103574.39 105090.47 103989.96 102644.44
-    ## result.3 103064.05 102079.61 102276.60 101083.01  99584.69 100196.41
-    ## result.4 110910.34 110090.70 110284.24 110766.34 111408.32 112205.63
-    ## result.5  96363.07  97022.24  96994.51  94968.85  96469.28  96648.44
-    ## result.6 101445.28 101698.99 101240.62 100186.88  99153.18  98534.05
+    ## result.1 106456.73 106389.33 109952.80 110936.63 111244.24 111606.64
+    ## result.2  94303.20  93819.97  93443.07  93091.19  92600.72  89992.72
+    ## result.3  99092.72  97591.78  96126.25  97099.24  95612.03  97420.03
+    ## result.4  95791.81  96395.41  97562.79  95675.91  95538.91  95656.69
+    ## result.5  99352.11 100045.31 101138.91 101821.10 101439.06 101325.82
+    ## result.6 104129.42 104017.75 106146.83 108240.42 106172.85 103578.99
     ##              [,19]     [,20]
-    ## result.1  92815.41  91704.68
-    ## result.2 105001.02 103945.11
-    ## result.3 101201.86 101291.43
-    ## result.4 112840.77 113188.20
-    ## result.5  98626.68 100705.58
-    ## result.6  97237.83  97788.24
+    ## result.1 110653.06 111833.32
+    ## result.2  90041.56  91223.84
+    ## result.3  94978.95  93547.47
+    ## result.4  95710.82  97236.20
+    ## result.5 103391.36 104714.55
+    ## result.6 100630.46  99886.82
 
 ``` r
 hist(sim1[,n_days], 25)
@@ -756,7 +756,7 @@ hist(sim1[,n_days], 25)
 mean(sim1[,n_days])
 ```
 
-    ## [1] 100497.3
+    ## [1] 100245.9
 
 ``` r
 hist(sim1[,n_days]- initial_wealth, breaks=30,xlab = "Returns",main="Distribution of returns")
@@ -771,7 +771,7 @@ quantile(sim1[,n_days]- initial_wealth, 0.05)
 ```
 
     ##        5% 
-    ## -7885.498
+    ## -8292.688
 
 Diversified ETFs
 ----------------
@@ -848,7 +848,7 @@ hist(sim3[,n_days], 25)
 mean(sim3[,n_days])
 ```
 
-    ## [1] 100497.5
+    ## [1] 100434.7
 
 ``` r
 hist(sim3[,n_days]- initial_wealth, breaks=30,xlab = "Returns",main="Distribution of returns")
@@ -862,8 +862,8 @@ The tail risk at 5% level :
 quantile(sim3[,n_days]- initial_wealth, 0.05)
 ```
 
-    ##       5% 
-    ## -7867.57
+    ##        5% 
+    ## -7810.882
 
 Summary:
 --------
@@ -1008,6 +1008,10 @@ wss = (nrow(comp)-1)*sum(apply(comp,2,var))
 for (i in 2:15) 
   wss[i] = sum(kmeans(comp,centers=i)$withinss)
 ```
+
+    ## Warning: did not converge in 10 iterations
+
+    ## Warning: did not converge in 10 iterations
 
     ## Warning: did not converge in 10 iterations
 
@@ -1200,17 +1204,28 @@ Market Segments According to Correlated Interests
 -------------------------------------------------
 
 K-means++ clustering with 6 clusters of sizes 2254, 976, 719, 1208,
-1280, 1445: \* Young to middle-aged women (Cluster 1): Photo sharing,
-shopping, home & garden are interests largely related with young women
-in their mid-twenties to forties. \* Fashion, Food and Beauty
-Enthusiasts (Cluster 2): Customer interests include fashion, beauty and
-cooking. \* College Students (Cluster 3): This group of customers tweet
-daily about their college life, online gaming and sports playing. \*
+1280, 1445:
+<ol>
+<li>
+Young to middle-aged women (Cluster 1): Photo sharing, shopping, home &
+garden are interests largely related with young women in their
+mid-twenties to forties.
+<li>
+Fashion, Food and Beauty Enthusiasts (Cluster 2): Customer interests
+include fashion, beauty and cooking.
+<li>
+College Students (Cluster 3): This group of customers tweet daily about
+their college life, online gaming and sports playing.
+<li>
 Parents (Cluster 4): Customer interests include parenting, family,
-religion, school \* Middle-aged working-class men (Cluster 5): Customer
-interests include politics, travel, automotive. \* Fitness Enthusiasts
-(Cluster 6): Customer interests include health & nutrition, personal
-fitness, outdoors.
+religion, school
+<li>
+Middle-aged working-class men (Cluster 5): Customer interests include
+politics, travel, automotive.
+<li>
+Fitness Enthusiasts (Cluster 6): Customer interests include health &
+nutrition, personal fitness, outdoors.
+</ol>
 
 ``` r
 #cluster1
@@ -1723,9 +1738,9 @@ groceryrules = apriori(grocery_trans,
     ## Absolute minimum support count: 9 
     ## 
     ## set item appearances ...[0 item(s)] done [0.00s].
-    ## set transactions ...[168 item(s), 9835 transaction(s)] done [0.00s].
+    ## set transactions ...[168 item(s), 9835 transaction(s)] done [0.01s].
     ## sorting and recoding items ... [154 item(s)] done [0.00s].
-    ## creating transaction tree ... done [0.00s].
+    ## creating transaction tree ... done [0.01s].
     ## checking subsets of size 1 2 3 4
 
     ## Warning in apriori(grocery_trans, parameter = list(support = 0.001,
