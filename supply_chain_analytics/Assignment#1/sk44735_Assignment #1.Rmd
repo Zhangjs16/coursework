@@ -1,9 +1,8 @@
 ---
 title: 'Assignment #1'
 output:
-  html_document:
-    df_print: paged
-  pdf_document: default
+  md_document:
+    variant: markdown_github
 ---  
 ***
 <center>

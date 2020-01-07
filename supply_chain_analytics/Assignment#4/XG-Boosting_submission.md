@@ -1,35 +1,92 @@
----
-title: "Team Assignment XG-Boosting"
-output:
-  md_document:
-    variant: markdown_github
----
-***
-<center> 
-### Forecasting Point-of-Sale x SKU Demand Using XG-Boosting
-</center>
-***
+------------------------------------------------------------------------
 
-```{r, echo=FALSE}
-cat("Team:
-Neha Anna John - NA25753
-Sayesha Aravapalli - SA49238
-Rawini Dias - RWD635
-Sadhana Koneni - SK44735
-Arjun Rao - AKR732
-")
+<center>
+
+### Forecasting Point-of-Sale x SKU Demand Using XG-Boosting
+
+</center>
+
+------------------------------------------------------------------------
+
+    ## Team:
+    ## Neha Anna John - NA25753
+    ## Sayesha Aravapalli - SA49238
+    ## Rawini Dias - RWD635
+    ## Sadhana Koneni - SK44735
+    ## Arjun Rao - AKR732
+
+The objective of this assignment is to provide a hands-on realistic
+example of a developing a forecasting model to be used for distribution
+and retailing.
+
+Using a Pareto approach we identified the most important SKUs and Stores
+in the Chicago market as it pertrains to the retailing of peanut butter.
+This information is contained in the file “PB Sales Chicago.csv”
+
+``` r
+library(tidyverse)
 ```
 
-The objective of this assignment is to provide a hands-on realistic example of a developing a forecasting model to be used for distribution and retailing.
+    ## -- Attaching packages -------------------------------------------------------------------------------------------------- tidyverse 1.2.1 --
 
-Using a Pareto approach we identified the most important SKUs and Stores in the Chicago market as it pertrains to the retailing of peanut butter. This information is contained in the file "PB Sales Chicago.csv"
+    ## v ggplot2 3.2.0     v purrr   0.3.2
+    ## v tibble  2.1.3     v dplyr   0.8.3
+    ## v tidyr   0.8.3     v stringr 1.4.0
+    ## v readr   1.3.1     v forcats 0.4.0
 
-```{r}
-library(tidyverse)
+    ## -- Conflicts ----------------------------------------------------------------------------------------------------- tidyverse_conflicts() --
+    ## x dplyr::filter() masks stats::filter()
+    ## x dplyr::lag()    masks stats::lag()
+
+``` r
 library(fpp2)
+```
+
+    ## Loading required package: forecast
+
+    ## Registered S3 method overwritten by 'xts':
+    ##   method     from
+    ##   as.zoo.xts zoo
+
+    ## Registered S3 method overwritten by 'quantmod':
+    ##   method            from
+    ##   as.zoo.data.frame zoo
+
+    ## Registered S3 methods overwritten by 'forecast':
+    ##   method             from    
+    ##   fitted.fracdiff    fracdiff
+    ##   residuals.fracdiff fracdiff
+
+    ## Loading required package: fma
+
+    ## Loading required package: expsmooth
+
+``` r
 library(xgboost)
+```
+
+    ## 
+    ## Attaching package: 'xgboost'
+
+    ## The following object is masked from 'package:dplyr':
+    ## 
+    ##     slice
+
+``` r
 library(onehot)
 library(caret)
+```
+
+    ## Loading required package: lattice
+
+    ## 
+    ## Attaching package: 'caret'
+
+    ## The following object is masked from 'package:purrr':
+    ## 
+    ##     lift
+
+``` r
 library(dplyr)
 
 #
@@ -45,7 +102,28 @@ D <- read_csv("PB Sales Chicago.csv") %>%
          PPOZ    = (DOLLARS / (UNITS * VOL_EQ * 16)), 
          LPU     = log1p(PPOZ), 
          LSA     = log1p(UNITS * VOL_EQ * 16))
+```
 
+    ## Parsed with column specification:
+    ## cols(
+    ##   IRI_KEY = col_double(),
+    ##   WEEK = col_double(),
+    ##   VEND = col_double(),
+    ##   ITEM = col_double(),
+    ##   UNITS = col_double(),
+    ##   DOLLARS = col_double(),
+    ##   F = col_character(),
+    ##   D = col_double(),
+    ##   PR = col_double(),
+    ##   UPC = col_character(),
+    ##   EST_ACV = col_double(),
+    ##   VOL_EQ = col_double(),
+    ##   TYPE = col_character(),
+    ##   TEXTURE = col_character(),
+    ##   FLAVOR = col_character()
+    ## )
+
+``` r
 #
 # Hot-One code all dummies
 D <- D %>% 
@@ -66,17 +144,15 @@ D <- D %>%
 select(-F,-D)
 ```
 
-
-
 #### The variables are as follows:
 
-- IRI_KEY: store identifier
-- F: in-store magazine feature advertising dummy
-- D: in-store display promotion dummy
+-   IRI\_KEY: store identifier
+-   F: in-store magazine feature advertising dummy
+-   D: in-store display promotion dummy
 
 Following is a simple forecasting model:
 
-```{r}
+``` r
 DR <- D %>% select(-TYPE, -TEXTURE, -FLAVOR, -VEND)
 D.tr <- DR %>% filter(WEEK <= 1674)                 # Training Set
 D.te <- DR %>% filter(WEEK >= 1675, WEEK <= 1680)   # Testing Set
@@ -103,20 +179,43 @@ xb <- xgboost(x.tr, y.tr,
 y_fit <- predict(xb, x.tr)
 y_tst <- predict(xb, x.te)
 sprintf('Train MAPE is %f',(mean(abs(y.tr - y_fit)/y.tr)*100))
-sprintf('Test MAPE is %f',(mean(abs(y.te - y_tst)/y.te)*100))
-sprintf('Test RMSE is %f',(sqrt(mean((y.te-y_tst)^2))))
+```
 
+    ## [1] "Train MAPE is 9.289508"
+
+``` r
+sprintf('Test MAPE is %f',(mean(abs(y.te - y_tst)/y.te)*100))
+```
+
+    ## [1] "Test MAPE is 11.408113"
+
+``` r
+sprintf('Test RMSE is %f',(sqrt(mean((y.te-y_tst)^2))))
+```
+
+    ## [1] "Test RMSE is 0.678005"
+
+``` r
 y_val <- predict(xb, x.v)
 sprintf('Validation MAPE is %f',(mean(abs(y.v - y_val)/y.v)*100))
+```
+
+    ## [1] "Validation MAPE is 14.075177"
+
+``` r
 sprintf('Validation RMSE is %f',(sqrt(mean((y.v - y_val)^2))))
 ```
 
-The script above uses a training set to fit the model; you should use the testing set to decide on the XG-Boosting parameters, and then once these parameters are set, use the validation set to estimate true out-of-sample RMSE and MAPE performance.  
+    ## [1] "Validation RMSE is 0.833063"
+
+The script above uses a training set to fit the model; you should use
+the testing set to decide on the XG-Boosting parameters, and then once
+these parameters are set, use the validation set to estimate true
+out-of-sample RMSE and MAPE performance.
 
 #### 1. Fine tune the model parameters and report RMSE and MAPE for training, testing, and validation sets. You will use this model as benchmark for comparison below.
 
-```{r}
-
+``` r
 param = expand.grid(lr = c(0.1,0.15,0.2,0.25,0.3), lam = c(0.1,0.2,0.3,0.4), md = c(3,4,5,6,7,8), ss = 0.9, cst = 0.9, csl=0.9, nr = c(20,40,50,60,70))
 
 results = data.frame()
@@ -148,28 +247,29 @@ for (i in 1:nrow(param)){
 
 colnames(results) = c('lr','lam','md', 'ss', 'cb', 'clb', 'NR','MAPE' )
 print(results[which.min(results$MAPE),])
-
 ```
 
-The following script sets a few sub-category wide indicators as additional model features.  We are interested in figuring out what are effective ways to define sub-categories of products whose business decisions may affect demand of each SKU on a store-by=store basis.
+    ##      lr lam md  ss  cb clb NR     MAPE
+    ## 540 0.3 0.4  5 0.9 0.9 0.9 70 13.25263
 
+The following script sets a few sub-category wide indicators as
+additional model features. We are interested in figuring out what are
+effective ways to define sub-categories of products whose business
+decisions may affect demand of each SKU on a store-by=store basis.
 
-#### 2. The script above is intended to give you a starting point, please modify it as you see it appropriate and add the sub-category or category-wide features that you consider important to enrich the model.  Report and discuss your findings.
+#### 2. The script above is intended to give you a starting point, please modify it as you see it appropriate and add the sub-category or category-wide features that you consider important to enrich the model. Report and discuss your findings.
 
 #### Answer:
 
-```{r, echo=FALSE}
-cat("
-The sub-category wide features have been added for type, texture and flavor. We have also added the vendor dummy variable. 
+    ## 
+    ## The sub-category wide features have been added for type, texture and flavor. We have also added the vendor dummy variable. 
+    ## 
+    ## Validation MAPE is 14.67
+    ## Validation RMSE is 0.86
+    ## 
+    ## MAPE is slightly higher but the model currently doesn't have the AR or MA components. Once we add the lagged components, the MAPE and RMSE are expected to improve.
 
-Validation MAPE is 14.67
-Validation RMSE is 0.86
-
-MAPE is slightly higher but the model currently doesn't have the AR or MA components. Once we add the lagged components, the MAPE and RMSE are expected to improve. 
-")
-```
-
-```{r}
+``` r
 # adding vendor dummy variables
 D = D %>% mutate(VEND = as.factor(VEND)) 
 ohe_feats = c('VEND')
@@ -178,8 +278,7 @@ df_all_ohe <- as.data.frame(predict(dummies, newdata = D))
 D <- cbind(D[,-c(which(colnames(D) %in% ohe_feats))],df_all_ohe)
 ```
 
-
-```{r}
+``` r
 SDR1 <- D %>% 
   group_by(WEEK, IRI_KEY, TYPE) %>%
   summarize(LAP1 = mean(LPU),
@@ -216,7 +315,7 @@ DR.1 <- DR.1 %>%
   left_join(SDR3, by =c("WEEK","IRI_KEY", "FLAVOR"))
 ```
 
-```{r}
+``` r
 DR.1 <- DR.1 %>% select(-TYPE, -TEXTURE, -FLAVOR)
 D.tr.1 <- DR.1 %>% filter(WEEK <= 1674)                 # Training Set
 D.te.1 <- DR.1 %>% filter(WEEK >= 1675, WEEK <= 1680)   # Testing Set
@@ -243,18 +342,40 @@ xb.1 <- xgboost(x.tr.1, y.tr.1,
 y_fit.1 <- predict(xb.1, x.tr.1)
 y_tst.1 <- predict(xb.1, x.te.1)
 sprintf('Train MAPE is %f',(mean(abs(y.tr.1 - y_fit.1)/y.tr.1)*100))
-sprintf('Test MAPE is %f',(mean(abs(y.te.1 - y_tst.1)/y.te.1)*100))
-sprintf('Test RMSE is %f',(sqrt(mean((y.te.1-y_tst.1)^2))))
+```
 
+    ## [1] "Train MAPE is 10.144577"
+
+``` r
+sprintf('Test MAPE is %f',(mean(abs(y.te.1 - y_tst.1)/y.te.1)*100))
+```
+
+    ## [1] "Test MAPE is 13.157306"
+
+``` r
+sprintf('Test RMSE is %f',(sqrt(mean((y.te.1-y_tst.1)^2))))
+```
+
+    ## [1] "Test RMSE is 0.766932"
+
+``` r
 y_val.1 <- predict(xb.1, x.v.1)
 sprintf('Validation MAPE is %f',(mean(abs(y.v.1 - y_val.1)/y.v.1)*100))
+```
+
+    ## [1] "Validation MAPE is 14.679182"
+
+``` r
 sprintf('Validation RMSE is %f',(sqrt(mean((y.v.1 - y_val.1)^2))))
 ```
 
+    ## [1] "Validation RMSE is 0.861752"
 
-Another type of useful model feature is lagged demand information.  The script below creates lagged demand variables.  Add them to the model in Question (2) and test them:
+Another type of useful model feature is lagged demand information. The
+script below creates lagged demand variables. Add them to the model in
+Question (2) and test them:
 
-```{r}
+``` r
 LY <- D %>% select(IRI_KEY, WEEK, UPC, LSA)
 LDEM <- data.frame(IRI_KEY = NULL, WEEK = NULL, UPC = NULL, LSA=NULL,
                    Y1 = NULL, Y2 = NULL, Y3 = NULL)
@@ -277,25 +398,21 @@ LDEM <- LDEM %>%
   select(-LSA)
 
 DL <- D %>% left_join(LDEM, by =c("WEEK", "IRI_KEY", "UPC")) 
-
-
-
 ```
 
 #### 3. Next use the script above to supplement your best model thus far with additional lagged demand features, tune the model parameters, report and discuss your findings.
 
 #### Answer:
-```{r, echo=FALSE}
-cat("
-We have added the lagged demand features with 12 lags as it gave the best MAPE. We have tuned the parameters and the final results have substantially improved to:
 
-MAPE: 10.64
-RMSE: 0.61
-")
-```
+    ## 
+    ## We have added the lagged demand features with 12 lags as it gave the best MAPE. We have tuned the parameters and the final results have substantially improved to:
+    ## 
+    ## MAPE: 10.64
+    ## RMSE: 0.61
 
 Using the AR lagged variables given:
-```{r}
+
+``` r
 DL <- DL %>% select(-TYPE, -TEXTURE, -FLAVOR)
 DL.tr <- DL %>% filter(WEEK <= 1674)                 # Training Set
 DL.te <- DL %>% filter(WEEK >= 1675, WEEK <= 1680)   # Testing Set
@@ -323,16 +440,38 @@ xb.L <- xgboost(x.tr.L, y.tr.L,
 y_fit.L <- predict(xb.L, x.tr.L)
 y_tst.L <- predict(xb.L, x.te.L)
 sprintf('Train MAPE is %f',(mean(abs(y.tr.L - y_fit.L)/y.tr.L)*100))
-sprintf('Test MAPE is %f',(mean(abs(y.te.L - y_tst.L)/y.te.L)*100))
-sprintf('Test RMSE is %f',(sqrt(mean((y.te.L-y_tst.L)^2))))
+```
 
+    ## [1] "Train MAPE is 9.201664"
+
+``` r
+sprintf('Test MAPE is %f',(mean(abs(y.te.L - y_tst.L)/y.te.L)*100))
+```
+
+    ## [1] "Test MAPE is 10.255251"
+
+``` r
+sprintf('Test RMSE is %f',(sqrt(mean((y.te.L-y_tst.L)^2))))
+```
+
+    ## [1] "Test RMSE is 0.595123"
+
+``` r
 y_val.L <- predict(xb.L, x.v.L)
 sprintf('Validation MAPE is %f',(mean(abs(y.v.L - y_val.L)/y.v.L)*100))
+```
+
+    ## [1] "Validation MAPE is 11.398009"
+
+``` r
 sprintf('Validation RMSE is %f',(sqrt(mean((y.v.L - y_val.L)^2))))
 ```
 
+    ## [1] "Validation RMSE is 0.655543"
+
 Now adding an MA component:
-```{r}
+
+``` r
 LY <- D %>% select(IRI_KEY, WEEK, UPC, LSA)
 LDEM <- data.frame(IRI_KEY = NULL, WEEK = NULL, UPC = NULL, LSA=NULL,
                    Y1 = NULL, Y2 = NULL, Y3 = NULL)
@@ -366,8 +505,7 @@ LDEM <- LDEM %>%
 DL <- DR.1 %>% left_join(LDEM, by =c("WEEK", "IRI_KEY", "UPC")) 
 ```
 
-
-```{r}
+``` r
 DL.tr <- DL %>% filter(WEEK <= 1674)                 # Training Set
 DL.te <- DL %>% filter(WEEK >= 1675, WEEK <= 1680)   # Testing Set
 DL.v  <- DL %>% filter(WEEK >= 1681)                 # Validation Set
@@ -423,20 +561,20 @@ for (i in 1:nrow(param)){
 
 colnames(results) = c('lr','lam','md', 'ss', 'cb', 'clb', 'NR','Val_MAPE', 'Val_RMSE', 'Train MAPE', 'Train RMSE', 'Test MAPE', 'Test RMSE' )
 print(results[which.min(results$Val_MAPE),])
-
 ```
+
+    ##      lr lam md  ss  cb clb NR Val_MAPE  Val_RMSE Train MAPE Train RMSE
+    ## 226 0.2 0.2  5 0.9 0.9 0.9 60 10.63941 0.6106604    8.90894  0.5054399
+    ##     Test MAPE Test RMSE
+    ## 226  10.10071 0.5873123
 
 #### 4. Prepare a set of recommendations regarding model features and modeling choices that your team reccommends.
 
-```{r, echo=FALSE}
-cat("
-1. Dummy variables to denote display advertising have been added, which improved MAPE of the validation set
-2. For the 5 vendors, dummy variables have been added, which also helped to improve the MAPE further
-3. For the category wide features, we have maintained the 3 subcategories as type, texture and flavor and made following modifications:
--Added aggregates for DNO, DMIN
--Added all attribute values for magazine features including A,A+,B, C
--Replaced mean(log(PPOZ)) with mean(LPU)
-4. Added lagged demand features upto lag period of 12. This made a significant impact and helped reduce validation MAPE to 10.63 from the initial MAPE value of 14.07    
-")
-```
-
+    ## 
+    ## 1. Dummy variables to denote display advertising have been added, which improved MAPE of the validation set
+    ## 2. For the 5 vendors, dummy variables have been added, which also helped to improve the MAPE further
+    ## 3. For the category wide features, we have maintained the 3 subcategories as type, texture and flavor and made following modifications:
+    ## -Added aggregates for DNO, DMIN
+    ## -Added all attribute values for magazine features including A,A+,B, C
+    ## -Replaced mean(log(PPOZ)) with mean(LPU)
+    ## 4. Added lagged demand features upto lag period of 12. This made a significant impact and helped reduce validation MAPE to 10.63 from the initial MAPE value of 14.07

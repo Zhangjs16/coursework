@@ -1,8 +1,8 @@
 ---
 title: 'OM380.17 - MSBA: Assignment #2'
 output:
-  html_document:
-    df_print: paged
+  md_document:
+    variant: markdown_github
 ---
 ***
 <center> 
