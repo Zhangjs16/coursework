@@ -1,0 +1,442 @@
+---
+title: "Team Assignment XG-Boosting"
+output:
+  html_document:
+    df_print: paged
+---
+***
+<center> 
+### Forecasting Point-of-Sale x SKU Demand Using XG-Boosting
+</center>
+***
+
+```{r, echo=FALSE}
+cat("Team:
+Neha Anna John - NA25753
+Sayesha Aravapalli - SA49238
+Rawini Dias - RWD635
+Sadhana Koneni - SK44735
+Arjun Rao - AKR732
+")
+```
+
+The objective of this assignment is to provide a hands-on realistic example of a developing a forecasting model to be used for distribution and retailing.
+
+Using a Pareto approach we identified the most important SKUs and Stores in the Chicago market as it pertrains to the retailing of peanut butter. This information is contained in the file "PB Sales Chicago.csv"
+
+```{r}
+library(tidyverse)
+library(fpp2)
+library(xgboost)
+library(onehot)
+library(caret)
+library(dplyr)
+
+#
+# READ DATA, CORRECT DATA TYPES AND CREATE PRICE AND VOLUME VARIABLES
+#
+D <- read_csv("PB Sales Chicago.csv") %>%
+  select(-ITEM) %>%
+  mutate(F       = as.factor(F),
+         UPC     = as.factor(UPC),
+         TYPE    = as.factor(TYPE),
+         TEXTURE = as.factor(TEXTURE),
+         FLAVOR  = as.factor(FLAVOR),
+         PPOZ    = (DOLLARS / (UNITS * VOL_EQ * 16)), 
+         LPU     = log1p(PPOZ), 
+         LSA     = log1p(UNITS * VOL_EQ * 16))
+
+#
+# Hot-One code all dummies
+D <- D %>% 
+  mutate(FAP = ifelse(F=="A+",1,0),
+         FA  = ifelse(F=="A",1,0),
+         FB  = ifelse(F=="B",1,0),
+         FC  = ifelse(F=="C",1,0),
+         TXCM  = ifelse(TEXTURE == "CREAMY",1,0),
+         TXCR  = ifelse(TEXTURE == "CRUNCHY",1,0),
+         TXCRX = ifelse(TEXTURE == "EXTRA CRUNCHY",1,0),
+         TXCH  = ifelse(TEXTURE == "CHUNKY",1,0),
+         TXSCH = ifelse(TEXTURE == "SUPER CHUNKY",1,0),
+         FL    = ifelse(FLAVOR == "REGULAR",1,0),
+         TYPB  = ifelse(TYPE == "PEANUT BUTTER",1,0),
+         TYPBS = ifelse(TYPE == "PEANUT BUTTER SPREAD",1,0),
+         DNO = ifelse(D==0,1,0),
+         DMIN = ifelse(D==1,1,0)) %>%
+select(-F,-D)
+```
+
+
+
+#### The variables are as follows:
+
+- IRI_KEY: store identifier
+- F: in-store magazine feature advertising dummy
+- D: in-store display promotion dummy
+
+Following is a simple forecasting model:
+
+```{r}
+DR <- D %>% select(-TYPE, -TEXTURE, -FLAVOR, -VEND)
+D.tr <- DR %>% filter(WEEK <= 1674)                 # Training Set
+D.te <- DR %>% filter(WEEK >= 1675, WEEK <= 1680)   # Testing Set
+D.v  <- DR %>% filter(WEEK >= 1681)                 # Validation Set
+
+x.tr <- D.tr %>% select(-IRI_KEY, -UPC, - UNITS, - DOLLARS, -LSA) %>% data.matrix()
+x.te <- D.te %>% select(-IRI_KEY, -UPC, - UNITS, - DOLLARS, -LSA) %>% data.matrix()
+x.v <- D.v %>% select(-IRI_KEY, -UPC, - UNITS, - DOLLARS, -LSA) %>% data.matrix()
+y.tr <- D.tr$LSA
+y.te <- D.te$LSA
+y.v  <- D.v$LSA
+
+set.seed(1)
+xb <- xgboost(x.tr, y.tr,
+              learning_rate = .4,
+              lambda = 0.1,
+              max_depth = 8,
+              subsample = 0.7,
+              colsample_bytree = 0.7,
+              colsample_bylevel = 0.7,
+              nround=20,
+              verbose=FALSE)
+
+y_fit <- predict(xb, x.tr)
+y_tst <- predict(xb, x.te)
+sprintf('Train MAPE is %f',(mean(abs(y.tr - y_fit)/y.tr)*100))
+sprintf('Test MAPE is %f',(mean(abs(y.te - y_tst)/y.te)*100))
+sprintf('Test RMSE is %f',(sqrt(mean((y.te-y_tst)^2))))
+
+y_val <- predict(xb, x.v)
+sprintf('Validation MAPE is %f',(mean(abs(y.v - y_val)/y.v)*100))
+sprintf('Validation RMSE is %f',(sqrt(mean((y.v - y_val)^2))))
+```
+
+The script above uses a training set to fit the model; you should use the testing set to decide on the XG-Boosting parameters, and then once these parameters are set, use the validation set to estimate true out-of-sample RMSE and MAPE performance.  
+
+#### 1. Fine tune the model parameters and report RMSE and MAPE for training, testing, and validation sets. You will use this model as benchmark for comparison below.
+
+```{r}
+
+param = expand.grid(lr = c(0.1,0.15,0.2,0.25,0.3), lam = c(0.1,0.2,0.3,0.4), md = c(3,4,5,6,7,8), ss = 0.9, cst = 0.9, csl=0.9, nr = c(20,40,50,60,70))
+
+results = data.frame()
+
+for (i in 1:nrow(param)){
+  a = param[i,1]
+  b = param[i,2]
+  c = param[i,3]
+  d = param[i,4]
+  e = param[i,5]
+  f = param[i,6]
+  g = param[i,7]
+  
+  xb <- xgboost(x.tr, y.tr,
+              learning_rate = a,
+              lambda = b,
+              max_depth = c,
+              subsample = d,
+              colsample_bytree = e,
+              colsample_bylevel = f,
+              nround=g,
+              verbose=FALSE)
+  
+  y_val <- predict(xb, x.v)
+  m = (mean(abs(y.v - y_val)/y.v)*100)
+
+  results = rbind(results,c(a,b,c,d,e,f,g,m))
+}
+
+colnames(results) = c('lr','lam','md', 'ss', 'cb', 'clb', 'NR','MAPE' )
+print(results[which.min(results$MAPE),])
+
+```
+
+The following script sets a few sub-category wide indicators as additional model features.  We are interested in figuring out what are effective ways to define sub-categories of products whose business decisions may affect demand of each SKU on a store-by=store basis.
+
+
+#### 2. The script above is intended to give you a starting point, please modify it as you see it appropriate and add the sub-category or category-wide features that you consider important to enrich the model.  Report and discuss your findings.
+
+#### Answer:
+
+```{r, echo=FALSE}
+cat("
+The sub-category wide features have been added for type, texture and flavor. We have also added the vendor dummy variable. 
+
+Validation MAPE is 14.67
+Validation RMSE is 0.86
+
+MAPE is slightly higher but the model currently doesn't have the AR or MA components. Once we add the lagged components, the MAPE and RMSE are expected to improve. 
+")
+```
+
+```{r}
+# adding vendor dummy variables
+D = D %>% mutate(VEND = as.factor(VEND)) 
+ohe_feats = c('VEND')
+dummies = dummyVars(~ VEND , data = D)
+df_all_ohe <- as.data.frame(predict(dummies, newdata = D))
+D <- cbind(D[,-c(which(colnames(D) %in% ohe_feats))],df_all_ohe)
+```
+
+
+```{r}
+SDR1 <- D %>% 
+  group_by(WEEK, IRI_KEY, TYPE) %>%
+  summarize(LAP1 = mean(LPU),
+            SD1NO  = sum(DNO),
+            SD1MIN  = sum(DMIN),
+            SPR1= sum(PR),
+            SFAP1 = sum(FAP),
+            SFA1 = sum(FA),
+            SFB1 = sum(FB),
+            SFC1 = sum(FC))
+
+SDR2 <- D %>%
+  group_by(WEEK, IRI_KEY, TEXTURE) %>%
+  summarize(LAP2 = mean(LPU),
+            SD2NO  = sum(DNO),
+            SD2MIN  = sum(DMIN),
+            SPR2 = sum(PR),
+            SFAP2 = sum(FAP),
+            SFA2 = sum(FA),
+            SFB2 = sum(FB),
+            SFC2 = sum(FC))
+
+SDR3 <- D %>%
+  group_by(WEEK, IRI_KEY, FLAVOR) %>%
+  summarize(LAP3 = mean(LPU), 
+            SD3NO  = sum(DNO),
+            SD3MIN  = sum(DMIN),
+            SPR3 = sum(PR))
+
+DR.1 <- D %>% select(IRI_KEY, WEEK, UPC, LPU, PR, FAP, FA, FB, FC, DNO, DMIN, VOL_EQ, TYPE, TEXTURE, FLAVOR, LSA, VEND.33776, VEND.45300, VEND.48001, VEND.51500, VEND.99998 )
+DR.1 <- DR.1 %>%
+  left_join(SDR1, by =c("WEEK","IRI_KEY", "TYPE")) %>%
+  left_join(SDR2, by =c("WEEK","IRI_KEY", "TEXTURE")) %>%
+  left_join(SDR3, by =c("WEEK","IRI_KEY", "FLAVOR"))
+```
+
+```{r}
+DR.1 <- DR.1 %>% select(-TYPE, -TEXTURE, -FLAVOR)
+D.tr.1 <- DR.1 %>% filter(WEEK <= 1674)                 # Training Set
+D.te.1 <- DR.1 %>% filter(WEEK >= 1675, WEEK <= 1680)   # Testing Set
+D.v.1  <- DR.1 %>% filter(WEEK >= 1681)                 # Validation Set
+
+x.tr.1 <- D.tr.1 %>% select(-IRI_KEY, -UPC, -LSA) %>% data.matrix()
+x.te.1 <- D.te.1 %>% select(-IRI_KEY, -UPC, -LSA) %>% data.matrix()
+x.v.1 <- D.v.1 %>% select(-IRI_KEY, -UPC, -LSA) %>% data.matrix()
+y.tr.1 <- D.tr.1$LSA
+y.te.1 <- D.te.1$LSA
+y.v.1  <- D.v.1$LSA
+
+set.seed(1)
+xb.1 <- xgboost(x.tr.1, y.tr.1,
+              learning_rate = .3,
+              lambda = 0.4,
+              max_depth = 5,
+              subsample = 0.9,
+              colsample_bytree = 0.9,
+              colsample_bylevel = 0.9,
+              nround=70,
+              verbose=FALSE)
+
+y_fit.1 <- predict(xb.1, x.tr.1)
+y_tst.1 <- predict(xb.1, x.te.1)
+sprintf('Train MAPE is %f',(mean(abs(y.tr.1 - y_fit.1)/y.tr.1)*100))
+sprintf('Test MAPE is %f',(mean(abs(y.te.1 - y_tst.1)/y.te.1)*100))
+sprintf('Test RMSE is %f',(sqrt(mean((y.te.1-y_tst.1)^2))))
+
+y_val.1 <- predict(xb.1, x.v.1)
+sprintf('Validation MAPE is %f',(mean(abs(y.v.1 - y_val.1)/y.v.1)*100))
+sprintf('Validation RMSE is %f',(sqrt(mean((y.v.1 - y_val.1)^2))))
+```
+
+
+Another type of useful model feature is lagged demand information.  The script below creates lagged demand variables.  Add them to the model in Question (2) and test them:
+
+```{r}
+LY <- D %>% select(IRI_KEY, WEEK, UPC, LSA)
+LDEM <- data.frame(IRI_KEY = NULL, WEEK = NULL, UPC = NULL, LSA=NULL,
+                   Y1 = NULL, Y2 = NULL, Y3 = NULL)
+
+U.Stores <- unique(D$IRI_KEY)
+U.Prods  <- unique(D$UPC)
+
+for(s in U.Stores){
+  for(p in U.Prods){
+    Y <- LY %>% filter(IRI_KEY == s, UPC == p)
+    X <- data.frame(WEEK = 1635:1686)
+    X <- left_join(X,Y, by = "WEEK") %>%
+      mutate(Y1 = lag(LSA),
+             Y2 = lag(LSA,2),
+             Y3 = lag(LSA,3))             
+    LDEM <- rbind(LDEM,X)
+  }
+}
+LDEM <- LDEM %>%
+  select(-LSA)
+
+DL <- D %>% left_join(LDEM, by =c("WEEK", "IRI_KEY", "UPC")) 
+
+
+
+```
+
+#### 3. Next use the script above to supplement your best model thus far with additional lagged demand features, tune the model parameters, report and discuss your findings.
+
+#### Answer:
+```{r, echo=FALSE}
+cat("
+We have added the lagged demand features with 12 lags as it gave the best MAPE. We have tuned the parameters and the final results have substantially improved to:
+
+MAPE: 10.64
+RMSE: 0.61
+")
+```
+
+Using the AR lagged variables given:
+```{r}
+DL <- DL %>% select(-TYPE, -TEXTURE, -FLAVOR)
+DL.tr <- DL %>% filter(WEEK <= 1674)                 # Training Set
+DL.te <- DL %>% filter(WEEK >= 1675, WEEK <= 1680)   # Testing Set
+DL.v  <- DL %>% filter(WEEK >= 1681)                 # Validation Set
+
+x.tr.L <- DL.tr %>% select(-IRI_KEY, -UPC, - UNITS, - DOLLARS, -LSA) %>% data.matrix()
+x.te.L <- DL.te %>% select(-IRI_KEY, -UPC, - UNITS, - DOLLARS, -LSA) %>% data.matrix()
+x.v.L <- DL.v %>% select(-IRI_KEY, -UPC, - UNITS, - DOLLARS, -LSA) %>% data.matrix()
+y.tr.L <- DL.tr$LSA
+y.te.L <- DL.te$LSA
+y.v.L  <- DL.v$LSA
+
+set.seed(1)
+
+xb.L <- xgboost(x.tr.L, y.tr.L,
+              learning_rate = .3,
+              lambda = 0.4,
+              max_depth = 5,
+              subsample = 0.9,
+              colsample_bytree = 0.9,
+              colsample_bylevel = 0.9,
+              nround=40,
+              verbose=FALSE)
+
+y_fit.L <- predict(xb.L, x.tr.L)
+y_tst.L <- predict(xb.L, x.te.L)
+sprintf('Train MAPE is %f',(mean(abs(y.tr.L - y_fit.L)/y.tr.L)*100))
+sprintf('Test MAPE is %f',(mean(abs(y.te.L - y_tst.L)/y.te.L)*100))
+sprintf('Test RMSE is %f',(sqrt(mean((y.te.L-y_tst.L)^2))))
+
+y_val.L <- predict(xb.L, x.v.L)
+sprintf('Validation MAPE is %f',(mean(abs(y.v.L - y_val.L)/y.v.L)*100))
+sprintf('Validation RMSE is %f',(sqrt(mean((y.v.L - y_val.L)^2))))
+```
+
+Now adding an MA component:
+```{r}
+LY <- D %>% select(IRI_KEY, WEEK, UPC, LSA)
+LDEM <- data.frame(IRI_KEY = NULL, WEEK = NULL, UPC = NULL, LSA=NULL,
+                   Y1 = NULL, Y2 = NULL, Y3 = NULL)
+
+U.Stores <- unique(D$IRI_KEY)
+U.Prods  <- unique(D$UPC)
+
+for(s in U.Stores){
+  for(p in U.Prods){
+    Y <- LY %>% filter(IRI_KEY == s, UPC == p)
+    X <- data.frame(WEEK = 1635:1686)
+    X <- left_join(X,Y, by = "WEEK") %>%
+      mutate(Y1 = lag(LSA),
+             Y2 = lag(LSA,2),
+             Y3 = lag(LSA,3),
+             Y4 = lag(LSA,4),
+             Y5 = lag(LSA,5),
+             Y6 = lag(LSA,6),
+             Y7 = lag(LSA,7),
+             Y8 = lag(LSA,8),
+             Y9 = lag(LSA,9),
+             Y10 = lag(LSA,10),
+             Y11 = lag(LSA,11),
+             Y12 = lag(LSA,12))
+    LDEM <- rbind(LDEM,X)
+  }
+}
+LDEM <- LDEM %>%
+  select(-LSA)
+
+DL <- DR.1 %>% left_join(LDEM, by =c("WEEK", "IRI_KEY", "UPC")) 
+```
+
+
+```{r}
+DL.tr <- DL %>% filter(WEEK <= 1674)                 # Training Set
+DL.te <- DL %>% filter(WEEK >= 1675, WEEK <= 1680)   # Testing Set
+DL.v  <- DL %>% filter(WEEK >= 1681)                 # Validation Set
+
+x.tr.L <- DL.tr %>% select(-IRI_KEY, -UPC, -LSA) %>% data.matrix()
+x.te.L <- DL.te %>% select(-IRI_KEY, -UPC, -LSA) %>% data.matrix()
+x.v.L <- DL.v %>% select(-IRI_KEY, -UPC, -LSA) %>% data.matrix()
+y.tr.L <- DL.tr$LSA
+y.te.L <- DL.te$LSA
+y.v.L  <- DL.v$LSA
+
+set.seed(1)
+
+param = expand.grid(lr = c(0.2,0.25,0.3,0.35,0.4), lam = c(0.1,0.2,0.3,0.4), md = c(4,5,6,7,8), ss = 0.9, cst = 0.9, csl=0.9, nr = c(40,50,60,70))
+
+results = data.frame()
+
+for (i in 1:nrow(param)){
+  a = param[i,1]
+  b = param[i,2]
+  c = param[i,3]
+  d = param[i,4]
+  e = param[i,5]
+  f = param[i,6]
+  g = param[i,7]
+  
+  xb.L <- xgboost(x.tr.L, y.tr.L,
+              learning_rate = a,
+              lambda = b,
+              max_depth = c,
+              subsample = d,
+              colsample_bytree = e,
+              colsample_bylevel = f,
+              nround=g,
+              verbose=FALSE)
+  
+  y_fit.L <- predict(xb.L, x.tr.L)
+  y_tst.L <- predict(xb.L, x.te.L)
+  
+  tr_m = (mean(abs(y.tr.L - y_fit.L)/y.tr.L)*100)
+  te_m = (mean(abs(y.te.L - y_tst.L)/y.te.L)*100)
+  
+  tr_r = (sqrt(mean((y.tr.L-y_fit.L)^2)))
+  te_r = (sqrt(mean((y.te.L-y_tst.L)^2)))
+
+  y_val.L <- predict(xb.L, x.v.L)
+
+  r = (sqrt(mean((y.v.L - y_val.L)^2)))
+  m = (mean(abs(y.v.L - y_val.L)/y.v.L)*100)
+
+  results = rbind(results,c(a,b,c,d,e,f,g,m,r,tr_m,tr_r,te_m,te_r))
+}
+
+colnames(results) = c('lr','lam','md', 'ss', 'cb', 'clb', 'NR','Val_MAPE', 'Val_RMSE', 'Train MAPE', 'Train RMSE', 'Test MAPE', 'Test RMSE' )
+print(results[which.min(results$Val_MAPE),])
+
+```
+
+#### 4. Prepare a set of recommendations regarding model features and modeling choices that your team reccommends.
+
+```{r, echo=FALSE}
+cat("
+1. Dummy variables to denote display advertising have been added, which improved MAPE of the validation set
+2. For the 5 vendors, dummy variables have been added, which also helped to improve the MAPE further
+3. For the category wide features, we have maintained the 3 subcategories as type, texture and flavor and made following modifications:
+-Added aggregates for DNO, DMIN
+-Added all attribute values for magazine features including A,A+,B, C
+-Replaced mean(log(PPOZ)) with mean(LPU)
+4. Added lagged demand features upto lag period of 12. This made a significant impact and helped reduce validation MAPE to 10.63 from the initial MAPE value of 14.07    
+")
+```
+

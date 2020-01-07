@@ -1,0 +1,506 @@
+---
+title: 'OM380.17 - MSBA: Assignment #2'
+output:
+  html_document:
+    df_print: paged
+---
+***
+<center> 
+### Forecasting Aggregate Electricity Generation in the US:
+### Seasonal ARIMA Lab.
+#### (Total 40 pts.)
+#### Due: Nov. 20 (before 9:00am)
+</center>
+***
+
+In this assignment we will focus on estimation of electricity generation in the US through December 2022.  We will base our analysis on the monthly data (index) provided by the Federal Reserve in https://fred.stlouisfed.org/series/IPG2211N 
+
+
+```{r message=TRUE, warning=FALSE, paged.print=FALSE}
+library(fpp)
+library(fpp2)
+library(dplyr)
+
+PG <- read.csv("IPG2211N.csv") %>%
+  select(-DATE) %>%
+  ts(start=c(1972,1), frequency=12)
+plot(PG)
+abline(v=c(2005,1), col="gray")
+```
+
+Initially we will set up as training data the series from January 1972 through December 1995, and the testing set as the data from January 1996 through December 2000.  First we will analyze the data during the growth period. To maintain consistency across the class, please execute the following two command to generate the training and testing data sets as indicated:
+
+```{r}
+PG1.tr <- window(PG, end=c(1995,12))
+PG1.te <- window(PG, start=c(1996,1), end=c(2000,12))
+```
+
+####1.	(5 pts.) Preliminary analysis of training data:
+*	Obtain the Box-Cox transformation parameter lambda for the training set PG1.tr
+
+*	Use the **ggtsdisplay(…, lag=48)** function to examine *ACF* and *PACF* of the Box-Cox transformed series with a non-seasonal difference.  Do the differenced and transformed series look stationary?
+
+*	Use the **ggtsdisplay(…, lag=48)** function to examine *ACF* and *PACF* of the Box-Cox transformed series with a seasonal difference.  Do the differenced and transformed series look stationary?
+
+*	Use the **ggtsdisplay(…, lag=48)** function to examine *ACF* and *PACF* of the Box-Cox transformed series with both a seasonal difference and a non-seasonal difference.  Do the differenced and transformed series look stationary?
+
+*	Run the **adf.test(…)** on the above series.  What do you conclude from the test?
+
+*	If you were to fit an *ARIMA* model to each of the (three) differenced series you obtained above, what would be the maximum order of the $(p,d,q) (P,D,Q)_{12}$  model in each case? (i.e., what is the maximum values of $p,P,q$  and $Q$ for each of the value combinations of $d$ and $D$?) 
+
+####Answer
+
+Lambda value is -0.253.
+
+The non-seasonal differenced data doesn't look stationary from the ACF plot as it neither cuts off nor dying down, even though time series looks stationary.
+
+The seasonally differenced data's time series doesn't look stationary. But ACF has decayed. 
+
+The first differenced and the seasonally differenced data, the time series may not be completely considered stationary as it doesn't quite have a constant spikes but the ACF has decayed. 
+
+The adf test is significant for all of them with a p-value of 0.01. 
+
+```{r, echo=FALSE}
+cat("
+The maximum values for p,P,q,Q:
+                                        p      P      q      Q    
+Non-seasonal differencing               9      3      9      4 
+Seasonal differencing                   6      2      8      1 
+Seasonal and Non-seasonal differencing  4      3      5      3 
+")
+```
+
+```{r}
+L = BoxCox.lambda(PG1.tr)
+L
+PG1Z.tr = BoxCox(PG1.tr,L)
+
+# non-seasonal differencing
+ggtsdisplay(diff(PG1Z.tr), lag=48)
+
+adf.test(diff(PG1Z.tr),alternative='stationary', k=12)
+
+# seasonal differencing
+ggtsdisplay(diff(PG1Z.tr, lag=12), lag=48)
+
+adf.test(diff(PG1Z.tr, lag=12),alternative='stationary',k=12)
+
+# seasonal and non-seasonal differencing
+ggtsdisplay(diff(diff(PG1Z.tr, lag=12),1), lag=48)
+
+adf.test(diff(diff(PG1Z.tr, lag=12),1),alternative='stationary',k=12)
+```
+
+
+
+####2.	(5 pts.) Automatic ARIMA model selection:
+
+*	Run the **auto.arima(…)** function to fit an ARIMA model on the Box-Cox transformation of the PG1.tr dataset, and report the order of the model, the value of the model parameters and the value of the AICc and BIC information criteria.
+
+*	Use the **checkresiduals(...)** function to assess the validity of the model you obtained in Question 1.  Based on the results you obtained comment on the validity of the model.
+
+*	Use the **forecast(…)** function to prepare a 60 month-ahead (5-year) forecast for the electricity generation and then overlay the actual data for electricity generation.  
+
+*	Use the **accuracy(…)** function to obtain the training and testing fit (PG1.te) metrics for the model obtained. Based on the visual inspection of the forecast plot and the out-of-sample fit statistics comment on the forecast bias. 
+
+####Answer
+
+The out-sample MPE is -2.64 which indicates forecast bias with the model over-predicting as also evident from the plot.  
+
+P-value should be large to fail to reject the null hypothesis that the series consists of stationary iid observations. P-value of 0.08272 indicates that the model is valid. 
+
+```{r, echo=FALSE}
+cat("
+ARIMA(2,1,1)(0,1,1)[12] 
+
+Coefficients:
+         ar1      ar2      ma1     sma1
+      0.6187  -0.2491  -0.6813  -0.8008
+s.e.  0.1150   0.0655   0.1096   0.0477
+
+sigma^2 estimated as 4.918e-05:  log likelihood=970.21
+
+AIC=-1930.42   AICc=-1930.19   BIC=-1912.33
+
+Order of the model: 
+        p         d         q         P         D         Q Frequency 
+        2         1         1         0         1         1        12 
+
+")
+```
+
+```{r}
+L = BoxCox.lambda(PG1.tr)
+
+fit.AA = auto.arima(PG1.tr, lambda = L)
+fit.AA
+# Order of the arima model
+arimaorder(fit.AA)
+
+checkresiduals(fit.AA) # p-value should be large to fail to reject the null hypothesis of stationary iid observations
+
+fc.AA = fit.AA %>%
+  forecast(h=60)
+
+autoplot(fc.AA) + autolayer(PG1.te, series = "Actual")
+
+autoplot(fc.AA) + autolayer(PG1.te, series = "Actual") + xlim(1995,2001)
+
+accuracy(fc.AA,PG1.te)
+
+```
+
+
+####3.	 (5 pts.) Manual Model Selection on $(p,0,q) (P,1,Q)_{12}$:
+
+*	Search manually for a model on the seasonally differenced series to improve on the automatic selection in Question 2.  To limit your manual search do not exceed the maximum values of $p,q,P$ and $Q$ that you identified in Question 1.
+
+*	Report on the best model that you identified in each case and comment on its *AIC*, *AICc* and *BIC*.  How do your model compares with the one found by **auto.arima(…)**?
+
+####Answer
+
+Assumption: The Auto ARIMA model is seasonally differenced apart from being first differenced but the IC values have been compared with the manual selection models below. This is because twelve data points difference would not cause a significant impact for comparing these models given the size of the dataset.  
+
+With manual selection, the AIC and AICc are better than the model selected by auto.arima while BIC is better for the auto.arima model. 
+
+To get a simpler model which performs better, the highest values tried for p, q, P and Q are 2, 2, 2 and 1 respectively. 
+
+```{r, echo=FALSE}
+cat("
+                                              p      P      q      Q    
+Max parameters with Seasonal differencing     6      2      8      1 
+
+Auto ARIMA (2,1,1) (0,1,1)_{12} : AIC=-1930.42   AICc=-1930.19   BIC=-1912.33
+
+Manual Selection (2,0,2) (0,1,1)_{12} : AIC=-1932.597	AICc=-1932.284	BIC=-1910.874	
+
+")
+```
+
+```{r}
+L = BoxCox.lambda(PG1.tr)
+
+param = expand.grid(p = 0:2, q = 0:2, P = 0:2, Q = 0:1)
+
+AIC_AA = -1930.42
+AICc_AA = -1930.19
+BIC_AA = -1912.33
+
+mape_AA = 3.028170
+
+results = data.frame()
+
+for (i in 1:nrow(param)) {
+  p = param[i,1]
+  q = param[i,2]
+  P = param[i,3]
+  Q = param[i,4]
+  
+  possibleError <- tryCatch(
+      Arima(PG1.tr, order=c(p,0,q), seasonal=c(P,1,Q), lambda=L),
+      error=function(e) e
+  )
+  
+  if(!inherits(possibleError, "error")){
+      model = Arima(PG1.tr, order=c(p,0,q), seasonal=c(P,1,Q), lambda=L)
+      
+      aicc = model$aicc
+      aic = AIC(model)
+      bic = model$bic
+      
+      fc.SA = model %>%
+    forecast(h=60)
+
+      mape = accuracy(fc.SA,PG1.te)[2,5]
+      
+      results = rbind(results, c(p, q, P, Q, aic, aicc, bic, mape))
+      
+  }
+} 
+
+colnames(results) = c('p','q','P','Q','AIC','AICC','BIC','MAPE')
+# print(results)
+print(results[which.min(results$AICC),])
+
+```
+
+####4.	(5 pts.) Manual Model Selection on $(p,1,q) (P,0,Q)_{12}$:
+
+*	Search manually for a model on the once-differenced series to improve on the automatic selection in Question 2.  To limit your manual search do not exceed the maximum values of $p,q,P$ and $Q$ that you identified in Question 1.
+
+*	Report on the best model that you identified in each case and comment on its  *AIC*, *AICc* and *BIC*.  How do your model compares with the ones found in Questions 2 and 3?
+
+####Answer
+
+Assumption: The Auto ARIMA model is first differenced apart from being seasonally differenced but the IC values have been compared with the manual selection models below. This is because one data point difference would not cause a significant impact for comparing these models given the size of the dataset.  
+
+With manual selection all the IC metrics are better than the model selected by auto.arima and the one from Question 3.
+
+To get a simpler model which performs better, the highest values tried for p, q, P and Q are 2, 2, 2 and 2 respectively. 
+
+```{r, echo=FALSE}
+cat("
+                                                            p      P      q      Q    
+Max parameters with Non-seasonal differencing               9      3      9      4
+
+Auto ARIMA (2,1,1) (0,1,1)_{12} : AIC=-1930.42   AICc=-1930.19   BIC=-1912.33
+
+Q3 - Manual Selection (2,0,2) (0,1,1)_{12} : AIC=-1932.597	AICc=-1932.284	BIC=-1910.874
+
+Manual Selection (2,1,1) (1,0,1)_{12} : AIC=-1992.094   AICc=-1991.794   BIC=-1970.137
+
+")
+```
+
+```{r}
+
+L = BoxCox.lambda(PG1.tr)
+
+param = expand.grid(p = 0:2, q = 0:2, P = 0:2, Q = 0:2)
+
+AIC_AA = -1930.42
+AICc_AA = -1930.19
+BIC_AA = -1912.33
+
+mape_AA = 3.028170
+
+results = data.frame()
+
+for (i in 1:nrow(param)) {
+  p = param[i,1]
+  q = param[i,2]
+  P = param[i,3]
+  Q = param[i,4]
+  
+  possibleError <- tryCatch(
+      Arima(PG1.tr, order=c(p,1,q), seasonal=c(P,0,Q), lambda=L),
+      error=function(e) e
+  )
+  
+  if(!inherits(possibleError, "error")){
+      model = Arima(PG1.tr, order=c(p,1,q), seasonal=c(P,0,Q), lambda=L)
+      
+      aicc = model$aicc
+      aic = AIC(model)
+      bic = model$bic
+      
+      fc.SA = model %>%
+    forecast(h=60)
+
+      mape = accuracy(fc.SA,PG1.te)[2,5]
+      
+      results = rbind(results, c(p, q, P, Q, aic, aicc, bic, mape))
+      
+  }
+} 
+
+colnames(results) = c('p','q','P','Q','AIC','AICC','BIC','MAPE')
+# print(results)
+print(results[which.min(results$AICC),])
+
+
+```
+
+####5.	(5 pts.) ARIMA model for the expanded training set:
+
+*	Now we redefine the training and testing sets as follows:
+
+```{r}
+PG2.tr <- window(PG, end=c(2011,12))
+```
+
+*	Obtain the Box-Cox transformation parameter lambda for the training set **PG2.tr**
+
+*	Difference the transformed series once at the seasonal and non-seasonal levels (i.e.,$d=1$ and $D=1$) and run the **adf.test(…)** on the resulting series.  What do you conclude from the test?
+
+*	If you were to fit an ARIMA model to the time series you obtained above, what would be the maximum order of the $(p,1,q) (P,1,Q)_{12}$  model? (i.e., what is the maximum values of $p,P,q$  and $Q$? )
+
+####Answer
+
+Lambda value is -0.367202.
+
+P-value is 0.01 indicating that the series is stationary.
+
+```{r, echo=FALSE}
+cat("
+                                                            p      P      q      Q    
+Max parameters with Non-seasonal differencing               4      4      2      2
+")
+```
+
+```{r}
+L = BoxCox.lambda(PG2.tr)
+ 
+cat(L)
+adf.test(diff(diff(BoxCox(PG2.tr,L)),lag=12),alternative='stationary',k=12)
+
+ggtsdisplay(diff(diff(BoxCox(PG2.tr,L)),lag=12), lag=48)
+
+```
+
+
+####6.	 (5 pts.) Automatic ARIMA model selection on the expanded dataset:
+
+*	Run the **auto.arima(…)** function to fit an *ARIMA* model on the Box-Cox transformation of the **PG2.tr** dataset, and report the order of the model, the value of the model parameters and the value of the *AIC*, *AICc* and *BIC*?
+
+*	Execute the residual diagnostics and comment on the validity of the model.
+
+####Answer
+
+P-value is 0.03169 and is less than 0.05 which indicates that the model is not valid i.e. the null hypothesis that the series consists of stationary iid observations is rejected. 
+
+```{r, echo=FALSE}
+cat("
+AIC=-3761.13   AICc=-3760.95   BIC=-3736.25
+
+Order of the model:
+p         d         q         P         D         Q Frequency 
+1         1         3         0         1         1        12 
+")
+```
+
+```{r}
+
+L = BoxCox.lambda(PG2.tr)
+
+fit.AA = auto.arima(PG2.tr, lambda = L)
+fit.AA
+# Order of the arima model
+arimaorder(fit.AA)
+
+checkresiduals(fit.AA) # p-value should be large to fail to reject the null hypothesis of stationary iid observations
+
+```
+
+####7.	 (5 pts.) Automatic ARIMA model selection with a reduced training dataset:
+
+*	As the patterns of consumption and generation changed substantially on 2005, before setting on a forecasting model we will try reducing the training set to information posterior to 2005.  To this end we define the training data set as follows:
+
+```{r}
+PG3.tr <- window(PG, start=c(2005,1), end=c(2011,12))
+PG3.te <- window(PG, start=c(2012,1), end=c(2017,12))
+
+tsdisplay(PG3.tr)
+```
+
+*	Now run the **auto.arima(…)** function to fit a model on the **PG3.tr** dataset, and report the order of the model, the value of the model parameters, and the values of *AIC*, *AICc* and *BIC*.
+
+*	Diagnose the model’s residuals to assess the validity of the model you obtained above.  Based on the results you obtained comment on the validity of the model.
+
+*	Using the **PG3.tr** dataset, try to get a better model than the one obtained by the **auto.arima(…)** function, possibly changing also the number of differences.  Use the information criteria and the validity of the model to select the best model.
+
+*	For the best model found thus far, prepare a 72 month-ahead forecast for the electricity generation and then overlay the actual data for electricity generation.  
+
+*	Based on the visual inspection of the forecast plot and the out-of-sample fit statistics comment on the forecast bias.
+ 
+####Answer 
+
+P-value is 0.2944 which is above 0.05 which indicates that the model is valid i.e. the null hypothesis that the series consists of stationary iid observations cannot be rejected.
+
+The out-sample MPE is -0.52 indicating forecasting bias with the model over-predicting as evident also from the graph.  
+
+```{r, echo=FALSE}
+cat("
+
+AIC=343.61   AICc=344.52   BIC=354.99
+
+Order of the model:
+p         d         q         P         D         Q Frequency 
+0         0         1         2         1         1        12 
+")
+```
+
+```{r}
+
+fit.AA = auto.arima(PG3.tr)
+fit.AA
+# Order of the arima model
+arimaorder(fit.AA)
+
+checkresiduals(fit.AA) # p-value should be large to fail to reject the null hypothesis of stationary iid observations
+```
+
+
+```{r}
+# trying combinations for (p,d,q), (P,D,Q)
+fit.AA1 = Arima(PG3.tr, order=c(0,0,1), seasonal=c(0,1,0))
+fit.AA1
+arimaorder(fit.AA1)
+
+checkresiduals(fit.AA1)
+
+fit.AA2 = Arima(PG3.tr, order=c(1,0,0), seasonal=c(0,1,0))
+fit.AA2
+arimaorder(fit.AA2)
+
+checkresiduals(fit.AA2)
+
+fit.AA3 = Arima(PG3.tr, order=c(0,0,1), seasonal=c(0,1,1))
+fit.AA3
+arimaorder(fit.AA3)
+
+checkresiduals(fit.AA3)
+
+fit.AA4 = Arima(PG3.tr, order=c(1,1,1), seasonal=c(1,1,1))
+fit.AA4
+arimaorder(fit.AA4)
+
+checkresiduals(fit.AA3)
+
+fit.AA5 = Arima(PG3.tr, order=c(1,1,2), seasonal=c(1,1,1))
+fit.AA5
+arimaorder(fit.AA5)
+
+checkresiduals(fit.AA5)
+
+fc.AA5 = fit.AA5 %>%
+  forecast(h=72)
+
+autoplot(fc.AA5) + autolayer(PG3.te, series = "Actual")
+
+autoplot(fc.AA5) + autolayer(PG3.te, series = "Actual") + xlim(2011,2017)
+
+accuracy(fc.AA5,PG3.te)
+
+```
+
+####8.	 (5 pts) Forecasting future monthly US electricity generation:
+
+*	Now define the training and testing data set as:
+
+```{r}
+PG.tr <- window(PG, start=c(2005,1), end=c(2017,12))
+PG.te <- window(PG, start=c(2018,1))
+```
+
+*	Use the **Arima(…)** function to fit the best model you have found thus far on PG.tr, run the model diagnostics to test the model validity and use it to extrapolate (forecast) the monthly generation of electricity in the US through the end of 2022 (i.e., forecast 60 months ahead).
+
+* Overlay the available data for 2018 over the forecast.  Comment on the model fit and validity.
+
+####Answer
+
+P-value is 0.1458 which is above 0.05 which indicates that the model is valid i.e. the null hypothesis that the series consists of stationary iid observations cannot be rejected.
+
+From the forecast plot, there appears to be some forecasting bias with the model slightly under-predicting although it's fitting reasonably well.
+
+The MPE for the period for which actual data is available is 2.39 indicating a bias with the model under-predicting.
+
+```{r}
+
+fit.A = Arima(PG.tr, order=c(1,1,2), seasonal=c(1,1,1))
+fit.A
+arimaorder(fit.A)
+
+checkresiduals(fit.A)
+
+fc.A = fit.A %>%
+  forecast(h=60)
+
+autoplot(fc.A) + autolayer(PG.te, series = "Actual")
+
+autoplot(fc.A) + autolayer(PG.te, series = "Actual") + xlim(2017,2023)
+
+accuracy(fc.A, PG.te)
+
+```
+
